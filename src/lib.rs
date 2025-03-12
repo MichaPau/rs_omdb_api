@@ -3,6 +3,8 @@ use core::fmt;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+
 const _MOVIE_FOUND_RESULT: &str = r#"
     {"Title":"The Matrix","Year":"1999","Rated":"R","Released":"31 Mar 1999","Runtime":"136 min","Genre":"Action, Sci-Fi","Director":"Lana Wachowski, Lilly Wachowski","Writer":"Lilly Wachowski, Lana Wachowski","Actors":"Keanu Reeves, Laurence Fishburne, Carrie-Anne Moss","Plot":"When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth--the life he knows is the elaborate deception of an evil cyber-intelligence.","Language":"English","Country":"United States, Australia","Awards":"Won 4 Oscars. 42 wins & 52 nominations total","Poster":"https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.7/10"},{"Source":"Rotten Tomatoes","Value":"83%"},{"Source":"Metacritic","Value":"73/100"}],"Metascore":"73","imdbRating":"8.7","imdbVotes":"2,124,695","imdbID":"tt0133093","Type":"movie","DVD":"N/A","BoxOffice":"$172,076,928","Production":"N/A","Website":"N/A","Response":"True"}
 "#;
@@ -143,17 +145,18 @@ impl OmdbApi {
     }
 
     pub fn get_by_title(&self, title: String) -> Result<OmdbResult, OmdbError> {
-        let mut url = format!(
+        let url = format!(
             "{}/?apikey={}&t={}&type={}&plot={}&r={}",
             self.base_url,
             self.api_key,
-            title,
+            utf8_percent_encode(&title, NON_ALPHANUMERIC).to_string(),
             self.search_type,
             self.plot_type,
             self.response_format,
         );
 
-        url = url.replace(" ", "%20");
+        //url = url.replace(" ", "%20");
+        //let url_encoded = utf8_percent_encode(&url, NON_ALPHANUMERIC).to_string();
         let body = ureq::get(&url)
             .header("Api-User-Agent", "thanks for your api")
             .call()?
@@ -323,6 +326,8 @@ impl From<String> for OmdbError {
 
 #[cfg(test)]
 mod tests {
+    use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+
     use crate::OmdbApi;
     use super::_MOVIE_FOUND_RESULT;
 
@@ -356,8 +361,19 @@ mod tests {
 
     }
     #[test]
-    fn get_ureq_switch() {
-
+    fn encode_url() {
+        let _url = format!(
+            "{}/?apikey={}&t={}&type={}&plot={}&r={}",
+            "https://www.omdbapi.com",
+            "123",
+            "this and that mc'ones {123}",
+            "r",
+            "short",
+            "josn",
+        );
+        let title = "this and that mc'ones {123}";
+        let url_encoded = utf8_percent_encode(&title, NON_ALPHANUMERIC).to_string();
+        println!("encoded: {}", url_encoded);
     }
 
 
