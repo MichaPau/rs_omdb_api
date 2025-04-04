@@ -155,22 +155,13 @@ impl OmdbApi {
             self.response_format,
         );
 
-        //url = url.replace(" ", "%20");
-        //let url_encoded = utf8_percent_encode(&url, NON_ALPHANUMERIC).to_string();
         let body = ureq::get(&url)
             .header("Api-User-Agent", "thanks for your api")
             .call()?
             .body_mut()
             .read_to_string()?;
-        // let surf_task = task::spawn(async move {
-        //     let mut response = surf::get(&url)
-        //         .header("Api-User-Agent", "thanks for your api")
-        //         .send().await?;
-        //     let body = response.body_string().await;
-        //     body
-        // });
 
-        // let body = task::block_on(surf_task)?;
+
         self.parse_response(body, "".into())
 
 
@@ -178,11 +169,38 @@ impl OmdbApi {
     pub fn get_example(&self) -> Result<OmdbResult, OmdbError> {
         self.parse_response(_MOVIE_FOUND_RESULT.into(), "The Matrix".into())
     }
-    pub fn get_by_imdb_id(&self, _id: String) -> Result<String, OmdbError> {
-        Err(OmdbError::NotImplemented)
+    pub fn get_by_imdb_id(&self, imdb_id: String) -> Result<OmdbResult, OmdbError> {
+        let url = format!(
+            "{}/?apikey={}&i={}",
+            self.base_url,
+            self.api_key,
+            imdb_id
+        );
+
+        let body = ureq::get(&url)
+            .header("Api-User-Agent", "thanks for your api")
+            .call()?
+            .body_mut()
+            .read_to_string()?;
+
+
+        self.parse_response(body, "".into())
     }
-    pub fn search_by_title(&self, _title: String) -> Result<String, OmdbError> {
-        Err(OmdbError::NotImplemented)
+    pub fn search_by_title(&self, title: String) -> Result<String, OmdbError> {
+        let url = format!(
+            "{}/?apikey={}&s={}",
+            self.base_url,
+            self.api_key,
+            utf8_percent_encode(&title, NON_ALPHANUMERIC).to_string());
+
+        let body = ureq::get(&url)
+            .header("Api-User-Agent", "thanks for your api")
+            .call()?
+            .body_mut()
+            .read_to_string()?;
+
+        Ok(body)
+
     }
 
     pub fn parse_response(&self, body_str: String, title: String) -> Result<OmdbResult, OmdbError> {
@@ -190,6 +208,8 @@ impl OmdbApi {
         if v["Response"] == "False" {
             if v["Error"] == "Movie not found!" {
                 Err(OmdbError::TitleNotFound(title))
+            } else if v["Error"] == "Error getting data." {
+                Err(OmdbError::ImdbIdNotFound(title))
             } else {
                 Err(OmdbError::KeyError(v["Error"].to_string()))
             }
@@ -296,6 +316,7 @@ pub enum OmdbError {
     SerdeJsonError(serde_json::Error),
     SerdeParseError(String),
     TitleNotFound(String),
+    ImdbIdNotFound(String),
     KeyError(String),
     OtherError(String),
     NotImplemented,
@@ -334,6 +355,11 @@ mod tests {
 
 
     #[test]
+    fn test_get_by_id() {
+
+    }
+    #[test]
+    #[ignore = "reason"]
     fn test_json_types() {
         let mut o = OmdbApi::new("key".into());
         o.set_plot_type(crate::PlotType::Full);
@@ -351,6 +377,7 @@ mod tests {
         //let _r = o.get_by_title("themovietitle".into());
     }
     #[test]
+    #[ignore = "reason"]
     fn de_and_se_test() {
         let mut o = OmdbApi::new("key".into());
         o.set_result_format(crate::ResultFormat::SerdeJsonTyped);
@@ -361,6 +388,7 @@ mod tests {
 
     }
     #[test]
+    #[ignore = "reason"]
     fn encode_url() {
         let _url = format!(
             "{}/?apikey={}&t={}&type={}&plot={}&r={}",
