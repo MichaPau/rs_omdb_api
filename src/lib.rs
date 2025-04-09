@@ -184,7 +184,7 @@ impl OmdbApi {
             .read_to_string()?;
 
 
-        self.parse_response(body, "".into())
+        self.parse_response(body, imdb_id)
     }
     pub fn search_by_title(&self, title: String) -> Result<String, OmdbError> {
         let url = format!(
@@ -203,13 +203,13 @@ impl OmdbApi {
 
     }
 
-    pub fn parse_response(&self, body_str: String, title: String) -> Result<OmdbResult, OmdbError> {
+    pub fn parse_response(&self, body_str: String, title_or_id: String) -> Result<OmdbResult, OmdbError> {
         let v: Value = serde_json::from_str(&body_str)?;
         if v["Response"] == "False" {
             if v["Error"] == "Movie not found!" {
-                Err(OmdbError::TitleNotFound(title))
-            } else if v["Error"] == "Error getting data." {
-                Err(OmdbError::ImdbIdNotFound(title))
+                Err(OmdbError::TitleNotFound(title_or_id))
+            } else if v["Error"] == "Incorrect IMDb ID." {
+                Err(OmdbError::ImdbIdNotFound(title_or_id))
             } else {
                 Err(OmdbError::KeyError(v["Error"].to_string()))
             }
